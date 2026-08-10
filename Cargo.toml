@@ -1,0 +1,8 @@
+[package]
+name = "fieldservice-webhook-retry"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "queue_worker"
+path = "src/main.rs"
