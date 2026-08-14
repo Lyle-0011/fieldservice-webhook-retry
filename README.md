@@ -1,12 +1,12 @@
 # Retry photo webhooks for field service
 
-Run the worker, publish one work-order photo event, consume it, and acknowledge it after the retry budget is reached.
+Stand up the worker, fire one work-order photo event, consume it, and ack it once the retry budget is spent.
 
-Infrai keeps the queue behind one API key. The example uses plain HTTP calls, so the Rust binary needs only `curl` and the standard library.
+Infrai puts the queue behind one API key. The example uses plain HTTP calls, so the Rust binary needs only `curl` and the standard library.
 
 ## Run the decision first
 
-The business rule is small: a 2xx delivery is complete; a non-2xx response retries through attempt four; attempt five is acknowledged so the queue does not hold the same work forever.
+The business rule is tiny: a 2xx means delivery is done; anything else retries up to attempt four; attempt five gets acknowledged so the queue stops replaying the same job forever.
 
 ```bash
 cargo test --offline
@@ -21,13 +21,13 @@ export INFRAI_API_KEY=your-key
 cargo run --offline
 ```
 
-`publish_photo` sends `{payload}` to `POST /v1/queue/publish`. Its payload contains `event_id=photo-WO-2048`, the work-order ID, the photo URL, and dispatch status. Re-running the command carries the same event identity.
+`publish_photo` sends `{payload}` to `POST /v1/queue/publish`. Its payload carries `event_id=photo-WO-2048`, the work-order ID, the photo URL, and dispatch status. Re-running the command keeps the same event identity.
 
 `consume` calls `POST /v1/queue/consume` with `max_messages` and `visibility_timeout`. The worker then uses `message_id` with `POST /v1/queue/ack`.
 
 ## One operational detail
 
-The worker prints the accepted envelope before making the delivery decision. The client checks `ok` and returns the complete `error` envelope when the response is not accepted. The retry decision is isolated in one function, making the queue policy easy to inspect before wiring in a delivery transport.
+The worker logs the accepted envelope before it makes the delivery call. The client checks `ok` and returns the full `error` envelope when the response was not accepted. The retry logic lives in one function, so you can read the queue policy before bolting on a real transport.
 
 ## License
 
@@ -35,7 +35,7 @@ MIT
 
 ## Before this ships: Fieldservice Webhook Retry
 
-Above is the happy path. The production checklist: The details below apply to Fieldservice Webhook Retry.
+That was the happy path. The production checklist below applies to Fieldservice Webhook Retry.
 
 **Account & key**
 
